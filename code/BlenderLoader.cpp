@@ -62,7 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MemoryIOWrapper.h"
 
 #include <cctype>
-
+#include <cstring>
 
 // zlib is needed for compressed blend files
 #ifndef ASSIMP_BUILD_NO_COMPRESSED_BLEND
@@ -399,6 +399,8 @@ void BlenderImporter::ConvertBlendFile(aiScene* out, const Scene& in,const FileD
     }
 
     if (conv.materials->size()) {
+        auto convmatsize = conv.materials->size();
+        out->mNumMaterials = static_cast<unsigned int>(convmatsize);
         out->mMaterials = new aiMaterial*[out->mNumMaterials = static_cast<unsigned int>( conv.materials->size() )];
         std::copy(conv.materials->begin(),conv.materials->end(),out->mMaterials);
         conv.materials.dismiss();
@@ -708,16 +710,18 @@ void BlenderImporter::AddBlendParams(aiMaterial* result, const Material* source)
 
 void BlenderImporter::BuildMaterials(ConversionData& conv_data)
 {
-    conv_data.materials->reserve(conv_data.materials_raw.size());
+    auto matrawsize = conv_data.materials_raw.size();
+    conv_data.materials->reserve(matrawsize);
 
     BuildDefaultMaterial(conv_data);
 
     for(std::shared_ptr<Material> mat : conv_data.materials_raw) {
 
         // reset per material global counters
-        for (size_t i = 0; i < sizeof(conv_data.next_texture)/sizeof(conv_data.next_texture[0]);++i) {
-            conv_data.next_texture[i] = 0 ;
-        }
+        auto next_texture_array_size = sizeof(conv_data.next_texture);
+        std::memset(conv_data.next_texture, 0x00, next_texture_array_size);
+        
+        
 
         aiMaterial* mout = new aiMaterial();
         conv_data.materials->push_back(mout);
